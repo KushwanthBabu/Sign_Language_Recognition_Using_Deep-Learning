@@ -259,12 +259,12 @@ def upload():
 # -----------------------------
 
 if __name__ == "__main__":
-
-    print("\n🚀 Open http://127.0.0.1:5000\n")
-
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    print(f"\n🚀 Open http://0.0.0.0:{port}\n")
     app.run(
         host="0.0.0.0",
-        port=5000,
+        port=port,
         threaded=False,
         debug=False,
     )
