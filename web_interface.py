@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 import tempfile
 import os
+import sys
 
 # -----------------------------
 # PATHS
@@ -18,6 +19,9 @@ ROOT = Path(__file__).parent
 
 MODEL_PATH = ROOT / "src" / "best_kp_model.h5"
 LABEL_MAP = ROOT / "data" / "label_map.json"
+
+# Add src/ to path so we can import build_model
+sys.path.insert(0, str(ROOT / "src"))
 
 # -----------------------------
 # CONFIG
@@ -42,7 +46,11 @@ MAX_VIDEO_FRAMES = 120
 
 print("Loading model...")
 
-model = tf.keras.models.load_model(MODEL_PATH)
+# Build model from architecture definition, then load weights.
+# This avoids Keras 2 vs Keras 3 deserialization conflicts.
+from model_kp import build_model
+model = build_model()
+model.load_weights(str(MODEL_PATH))
 
 with open(LABEL_MAP, "r") as f:
     id2label = json.load(f)
