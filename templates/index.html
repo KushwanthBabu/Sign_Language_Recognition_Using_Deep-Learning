@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Sign Recognition</title>
+
+<style>
+
+body {
+    background: linear-gradient(135deg,#071a35,#0b2e5f);
+    font-family: Arial;
+    color:white;
+    text-align:center;
+}
+
+.container { max-width:1200px; margin:auto; }
+
+.box {
+    background: rgba(255,255,255,0.08);
+    border-radius:18px;
+    padding:25px;
+    margin:30px 0;
+}
+
+video,img {
+    border:3px solid cyan;
+    border-radius:14px;
+    width:75%;
+}
+
+.pred-panel {
+    margin-top:15px;
+    background: rgba(0,0,0,0.35);
+    padding:12px;
+    border-radius:12px;
+    width:50%;
+    margin-left:auto;
+    margin-right:auto;
+}
+
+.pred-title { color:cyan; }
+.pred-label { font-size:30px; }
+.pred-conf { opacity:0.8; }
+
+button {
+    background: cyan;
+    border:none;
+    padding:10px 20px;
+    font-weight:bold;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>✋ Sign Language Recognition</h1>
+
+<div class="container">
+
+<!-- LIVE -->
+<div class="box">
+
+<h2>🎥 Live Webcam</h2>
+
+<video id="webcam" autoplay playsinline></video>
+
+<div class="pred-panel">
+    <div class="pred-title">Live Prediction</div>
+    <div class="pred-label" id="liveText">Waiting...</div>
+    <div class="pred-conf" id="liveConf"></div>
+</div>
+
+</div>
+
+<!-- UPLOAD -->
+<div class="box">
+
+<h2>📁 Upload Photo / Video</h2>
+
+<form id="uploadForm">
+<input type="file" id="fileInput" accept="video/*,image/*">
+<button>Detect</button>
+</form>
+
+<div>
+<video id="videoPreview" controls style="display:none;"></video>
+<img id="imagePreview" style="display:none;">
+</div>
+
+<div class="pred-panel">
+    <div class="pred-title">Upload Result</div>
+    <div class="pred-label" id="uploadText">---</div>
+    <div class="pred-conf" id="uploadConf"></div>
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const webcam = document.getElementById("webcam");
+
+navigator.mediaDevices.getUserMedia({video:true})
+.then(stream => webcam.srcObject = stream);
+
+// LIVE LOOP
+async function sendFrame(){
+
+    if(webcam.videoWidth===0) return;
+
+    const c=document.createElement("canvas");
+    c.width=webcam.videoWidth;
+    c.height=webcam.videoHeight;
+
+    const ctx=c.getContext("2d");
+    ctx.drawImage(webcam,0,0);
+
+    const data=c.toDataURL("image/jpeg");
+
+    const r=await fetch("/predict",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({image:data})
+    });
+
+    const j=await r.json();
+
+    liveText.innerText=j.label;
+    liveConf.innerText=j.confidence
+        ? "Confidence: "+(j.confidence*100).toFixed(1)+"%"
+        : "";
+}
+
+setInterval(sendFrame,800);
+
+// PREVIEW
+fileInput.onchange=()=>{
+
+    const f=fileInput.files[0];
+    if(!f) return;
+
+    const url=URL.createObjectURL(f);
+
+    if(f.type.startsWith("video")){
+        videoPreview.src=url;
+        videoPreview.style.display="block";
+        imagePreview.style.display="none";
+    } else {
+        imagePreview.src=url;
+        imagePreview.style.display="block";
+        videoPreview.style.display="none";
+    }
+};
+
+// UPLOAD
+uploadForm.onsubmit=async e=>{
+
+    e.preventDefault();
+
+    const fd=new FormData();
+    fd.append("file",fileInput.files[0]);
+
+    uploadText.innerText="Processing...";
+    uploadConf.innerText="";
+
+    const r=await fetch("/upload",{method:"POST",body:fd});
+    const j=await r.json();
+
+    uploadText.innerText=j.label || j.error;
+
+    if(j.confidence){
+        uploadConf.innerText="Confidence: "+(j.confidence*100).toFixed(1)+"%";
+    }
+};
+
+</script>
+
+</body>
+</html>
