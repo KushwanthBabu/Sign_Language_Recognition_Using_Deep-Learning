@@ -8,8 +8,10 @@ data/keypoints/
 data/processed/
 
 # Trained Model Files (large binaries)
-src/best_kp_model.h5
+# best_kp_model.h5 is tracked via Git LFS — do NOT ignore it
+!src/best_kp_model.h5
 src/final_kp_model/
+
 
 # Uploaded Test Files
 uploads/
